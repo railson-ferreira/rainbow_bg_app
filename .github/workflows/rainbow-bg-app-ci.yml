@@ -1,1 +1,32 @@
-on: workflow_dispatch
+name: Build Flutter App
+
+on:
+  workflow_dispatch:
+  create:
+    tags:
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Analyze project source
+        run: |
+          dart analyze;
+          dart run dart_code_metrics:metrics analyze lib test;
+          dart run dart_code_metrics:metrics check-unused-files lib test;
+          dart run dart_code_metrics:metrics check-unused-l10n lib test;
+
+      - name: Build android apk
+        run: flutter build apk
+
+      - name: Upload android release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-release-${{ github.event.ref_type == 'tag' && github.event.ref || 'snapshot'}}
+          path: build/app/outputs/flutter-apk/app-release.apk
